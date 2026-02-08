@@ -25,10 +25,18 @@ export const validateCreateLoan = (data: any) => {
         start_date: Joi.string()
             .pattern(/^\d{4}-\d{2}-\d{2}$/)
             .required()
+            .custom((value, helpers) => {
+                const today = new Date().toISOString().split('T')[0];
+                if (value < today) {
+                    return helpers.error('date.min');
+                }
+                return value;
+            })
             .messages({
                 'string.pattern.base':
                     'Start date must be in YYYY-MM-DD format',
                 'any.required': 'Start date is required',
+                'date.min': 'Start date cannot be in the past',
             }),
     });
 

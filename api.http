@@ -226,7 +226,7 @@ Content-Type: application/json
 {
   "principal": 100000,
   "annual_rate": 27.5,
-  "start_date": "2025-01-01"
+  "start_date": "2026-02-08"
 }
 
 ###
@@ -239,7 +239,7 @@ Content-Type: application/json
 {
   "principal": 50000,
   "annual_rate": 27.5,
-  "start_date": "2025-03-01"
+  "start_date": "2026-03-01"
 }
 
 ###
@@ -251,7 +251,7 @@ Content-Type: application/json
 
 {
   "principal": 25000,
-  "start_date": "2025-06-01"
+  "start_date": "2026-06-01"
 }
 
 ###
@@ -262,25 +262,25 @@ Authorization: {{token}}
 
 ###
 
-### 5e. Accrue interest for January (Jan 2 – Jan 31 = 30 days)
+### 5e. Accrue interest for rest of February (Feb 8 – Feb 29 = 22 days, leap year 2026)
 # @name accrueJan
 POST {{baseUrl}}/loans/{{loanId}}/accrue
 Authorization: {{token}}
 Content-Type: application/json
 
 {
-  "end_date": "2025-01-31"
+  "end_date": "2026-02-28"
 }
 
 ###
 
-### 5f. Accrue interest for February (Feb 1 – Feb 28 = 28 days, non-leap year 2025)
+### 5f. Accrue interest for March (Mar 1 – Mar 31 = 31 days)
 POST {{baseUrl}}/loans/{{loanId}}/accrue
 Authorization: {{token}}
 Content-Type: application/json
 
 {
-  "end_date": "2025-02-28"
+  "end_date": "2026-03-31"
 }
 
 ###
@@ -303,7 +303,7 @@ Authorization: {{token}}
 Content-Type: application/json
 
 {
-  "end_date": "2025-01-15"
+  "end_date": "2026-02-15"
 }
 
 ###
