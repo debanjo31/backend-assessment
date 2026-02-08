@@ -244,18 +244,6 @@ Content-Type: application/json
 
 ###
 
-### 5c. Create a third loan with default annual rate
-POST {{baseUrl}}/loans
-Authorization: {{token}}
-Content-Type: application/json
-
-{
-  "principal": 25000,
-  "start_date": "2026-06-01"
-}
-
-###
-
 ### 5d. Get loan details
 GET {{baseUrl}}/loans/{{loanId}}
 Authorization: {{token}}
