@@ -1,0 +1,338 @@
+
+### Sycamore Backend Assessment — API Test File
+
+### Variables
+@baseUrl = http://localhost:5000/api
+@token = {{signin.response.body.data.accessToken}}
+@userId = {{signin.response.body.data.user.id}}
+@receiverToken = {{signinReceiver.response.body.data.accessToken}}
+@receiverId = {{signinReceiver.response.body.data.user.id}}
+@loanId = {{createLoan.response.body.data.id}}
+@walletId = {{getBalance.response.body.data.id}}
+
+
+### 1. AUTH — Register & Login
+
+### 1a. Sign up — Sender (User A)
+# @name signup
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "email": "sender@test.com",
+  "name": "Sender User",
+  "password": "Password123!"
+}
+
+###
+
+### 1b. Sign up — Receiver (User B)
+# @name signupReceiver
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "email": "receiver@test.com",
+  "name": "Receiver User",
+  "password": "Password123!"
+}
+
+###
+
+### 1c. Sign in — Sender
+# @name signin
+POST {{baseUrl}}/auth/signin
+Content-Type: application/json
+
+{
+  "email": "sender@test.com",
+  "password": "Password123!"
+}
+
+###
+
+### 1d. Sign in — Receiver
+# @name signinReceiver
+POST {{baseUrl}}/auth/signin
+Content-Type: application/json
+
+{
+  "email": "receiver@test.com",
+  "password": "Password123!"
+}
+
+###
+
+
+### 2. USER — Profile
+
+### 2a. Get sender profile
+GET {{baseUrl}}/user/profile
+Authorization: {{token}}
+
+###
+
+### 2b. Get receiver profile
+GET {{baseUrl}}/user/profile
+Authorization: {{receiverToken}}
+
+###
+
+
+### 3. WALLET — Balance & Fund
+
+### 3a. Get sender wallet balance (wallet is auto-created on signup)
+# @name getBalance
+GET {{baseUrl}}/wallet/balance
+Authorization: {{token}}
+
+###
+
+### 3b. Fund sender wallet — add 10,000
+POST {{baseUrl}}/wallet/fund
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "amount": 10000
+}
+
+###
+
+### 3c. Fund sender wallet — add another 5,000
+POST {{baseUrl}}/wallet/fund
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "amount": 5000
+}
+
+###
+
+### 3d. Check sender balance after funding
+GET {{baseUrl}}/wallet/balance
+Authorization: {{token}}
+
+###
+
+### 3e. Check receiver balance (should be 0 initially)
+GET {{baseUrl}}/wallet/balance
+Authorization: {{receiverToken}}
+
+###
+
+
+### 4. TRANSFER — Idempotent Wallet (Task A)
+
+### 4a. Transfer 3,000 from sender to receiver
+# @name transfer
+POST {{baseUrl}}/transfer
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "idempotency_key": "txn-unique-key-001",
+  "receiver_id": "{{receiverId}}",
+  "amount": 3000
+}
+
+###
+
+### 4b. Duplicate transfer — same idempotency key (should return same result, no double-charge)
+POST {{baseUrl}}/transfer
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "idempotency_key": "txn-unique-key-001",
+  "receiver_id": "{{receiverId}}",
+  "amount": 3000
+}
+
+###
+
+### 4c. Second transfer with new key
+POST {{baseUrl}}/transfer
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "idempotency_key": "txn-unique-key-002",
+  "receiver_id": "{{receiverId}}",
+  "amount": 1500.75
+}
+
+###
+
+### 4d. Transfer to self — should fail 400
+POST {{baseUrl}}/transfer
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "idempotency_key": "txn-unique-key-003",
+  "receiver_id": "{{userId}}",
+  "amount": 100
+}
+
+###
+
+### 4e. Transfer more than balance — should fail 402 (insufficient funds)
+POST {{baseUrl}}/transfer
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "idempotency_key": "txn-unique-key-004",
+  "receiver_id": "{{receiverId}}",
+  "amount": 99999999
+}
+
+###
+
+### 4f. Transfer with missing fields — should fail 400
+POST {{baseUrl}}/transfer
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "amount": 100
+}
+
+###
+
+### 4g. Check sender balance after transfers
+GET {{baseUrl}}/wallet/balance
+Authorization: {{token}}
+
+###
+
+### 4h. Check receiver balance after transfers
+GET {{baseUrl}}/wallet/balance
+Authorization: {{receiverToken}}
+
+###
+
+
+### 5. LOANS & INTEREST — Interest Accumulator (Task B)
+
+### 5a. Create a loan — 27.5% annual rate
+# @name createLoan
+POST {{baseUrl}}/loans
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "principal": 100000,
+  "annual_rate": 27.5,
+  "start_date": "2025-01-01"
+}
+
+###
+
+### 5b. Create a second loan
+POST {{baseUrl}}/loans
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "principal": 50000,
+  "annual_rate": 27.5,
+  "start_date": "2025-03-01"
+}
+
+###
+
+### 5c. Create a third loan with default annual rate
+POST {{baseUrl}}/loans
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "principal": 25000,
+  "start_date": "2025-06-01"
+}
+
+###
+
+### 5d. Get loan details
+GET {{baseUrl}}/loans/{{loanId}}
+Authorization: {{token}}
+
+###
+
+### 5e. Accrue interest for January (Jan 2 – Jan 31 = 30 days)
+# @name accrueJan
+POST {{baseUrl}}/loans/{{loanId}}/accrue
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "end_date": "2025-01-31"
+}
+
+###
+
+### 5f. Accrue interest for February (Feb 1 – Feb 28 = 28 days, non-leap year 2025)
+POST {{baseUrl}}/loans/{{loanId}}/accrue
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "end_date": "2025-02-28"
+}
+
+###
+
+### 5g. Get loan details after accrual (check updated accrued_interest)
+GET {{baseUrl}}/loans/{{loanId}}
+Authorization: {{token}}
+
+###
+
+### 5h. Get all daily accrual records for the loan
+GET {{baseUrl}}/loans/{{loanId}}/accruals
+Authorization: {{token}}
+
+###
+
+### 5i. Accrue interest for a date already processed — should fail 400
+POST {{baseUrl}}/loans/{{loanId}}/accrue
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "end_date": "2025-01-15"
+}
+
+###
+
+### 5j. Invalid end_date format — should fail 400
+POST {{baseUrl}}/loans/{{loanId}}/accrue
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "end_date": "January 31"
+}
+
+###
+
+### 5k. Loan not found — should fail 404
+GET {{baseUrl}}/loans/00000000-0000-0000-0000-000000000000
+Authorization: {{token}}
+
+###
+
+
+### 6. ERROR CASES
+
+### 6a. No auth token — should fail 401
+GET {{baseUrl}}/wallet/balance
+
+###
+
+### 6b. Invalid auth token — should fail
+GET {{baseUrl}}/wallet/balance
+Authorization: Bearer invalid.token.here
